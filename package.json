@@ -1,0 +1,35 @@
+{
+  "name": "ah-fs",
+  "version": "0.0.0",
+  "description": "Tracks async hook events related to file system operations.",
+  "main": "ah-fs.js",
+  "scripts": {
+    "test": "tape test/*.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/thlorenz/ah-fs.git"
+  },
+  "homepage": "https://github.com/thlorenz/ah-fs",
+  "dependencies": {
+    "ah-collector": "0.0.2",
+    "ah-prune": "~1.0.0",
+    "function-origin": "~1.1.1"
+  },
+  "devDependencies": {
+    "tape": "~4.6.3"
+  },
+  "keywords": [],
+  "author": {
+    "name": "Thorsten Lorenz",
+    "email": "thlorenz@gmx.de",
+    "url": "http://thlorenz.com"
+  },
+  "license": {
+    "type": "MIT",
+    "url": "https://github.com/thlorenz/ah-fs/blob/master/LICENSE"
+  },
+  "engine": {
+    "node": ">=0.10"
+  }
+}
