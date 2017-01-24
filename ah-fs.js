@@ -2,41 +2,21 @@ const ActivityCollector = require('ah-collector')
 const facileClone = require('facile-clone')
 const functionOrigin = require('function-origin')
 const prune = require('ah-prune')
+const StackCapturer = require('ah-stack-capturer')
 
-const includedResources = new Set([ 'FSREQWRAP', 'FSREQUESTWRAP' ])
-const defaultCaptureStackFor = new Set([ 'init', 'before', 'after', 'destroy' ])
-
-class StackCapturer {
-  constructor({
-      events
-    , includedResources
-  }) {
-    this._events = events
-    this._includedResources = includedResources
-  }
-
-  captureStack(event, activity, resource) {
-    if (!this._events.has(event)) return false
-    if (!this._includedResources.has(activity.type)) return false
-    return true
-  }
-}
+const types = new Set([ 'FSREQWRAP', 'FSREQUESTWRAP' ])
+const defaultStackCapturer = StackCapturer.forAllEvents(types)
 
 class FileSystemActivityCollector extends ActivityCollector {
   constructor({
       start
-    , captureStackFor = defaultCaptureStackFor
+    , stackCapturer = defaultStackCapturer
     , bufferLength = 0
     , stringLength = 0
     , captureArguments = false
     , captureSource = false
   }) {
-    let captureStack = null
-    if (captureStackFor != null) {
-      const stackCapturer = new StackCapturer({ events: captureStackFor, includedResources })
-      captureStack = stackCapturer.captureStack.bind(stackCapturer)
-    }
-    super({ start, captureStack })
+    super({ start, stackCapturer })
 
     this._bufferLength = bufferLength
     this._stringLength = stringLength
@@ -49,13 +29,33 @@ class FileSystemActivityCollector extends ActivityCollector {
   get fileSystemActivities() {
     return prune({
         activities: this.activities
-      , keep: includedResources
+      , keep: types
     })
   }
 
   cleanAllResources() {
     for (const uid of this.activities.keys()) this._cleanupResource(uid)
     return this
+  }
+
+  stringifyBuffers() {
+    for (const a of this.activities.values()) {
+      const ctx = a.resource && a.resource.context
+      if (ctx == null) return
+      this._stringifyBuffersOf(ctx)
+      const args = ctx.callback && ctx.callback.arguments
+      if (args != null) this._stringifyBuffersOf(args)
+    }
+    return this
+  }
+
+  _stringifyBuffersOf(o) {
+    function stringify(k) {
+      const wrapper = o[k]
+      if (wrapper == null || wrapper.type !== 'Buffer') return
+      wrapper.val = wrapper.val.toString()
+    }
+    Object.keys(o).forEach(stringify)
   }
 
   _clone(x) {
@@ -143,12 +143,12 @@ const collector = new FileSystemActivityCollector({
     start: process.hrtime()
   , captureArguments: true
   , captureSource: false
-  , bufferLength: 8
+  , bufferLength: 18
 }).enable()
 let tasks = 1 // files.length
 
 function readFiles(files) {
-  files.slice(0, 1).forEach(readFile)
+  files.slice(1, 2).forEach(readFile)
 }
 
 function readFile(x) {
@@ -163,6 +163,8 @@ function onread(err, src) {
     collector
       .processStacks()
       .cleanAllResources()
+      .stringifyBuffers()
+
     inspect(collector.fileSystemActivities)
   }
 }

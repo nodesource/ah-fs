@@ -12,8 +12,9 @@
   },
   "homepage": "https://github.com/thlorenz/ah-fs",
   "dependencies": {
-    "ah-collector": "0.0.2",
+    "ah-collector": "0.0.3",
     "ah-prune": "~1.0.0",
+    "ah-stack-capturer": "~1.0.0",
     "facile-clone": "~1.0.1",
     "function-origin": "~1.1.1"
   },
