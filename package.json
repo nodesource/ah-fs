@@ -14,6 +14,7 @@
   "dependencies": {
     "ah-collector": "0.0.2",
     "ah-prune": "~1.0.0",
+    "facile-clone": "~1.0.1",
     "function-origin": "~1.1.1"
   },
   "devDependencies": {

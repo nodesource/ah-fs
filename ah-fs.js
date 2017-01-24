@@ -1,4 +1,5 @@
 const ActivityCollector = require('ah-collector')
+const facileClone = require('facile-clone')
 const functionOrigin = require('function-origin')
 const prune = require('ah-prune')
 
@@ -24,10 +25,11 @@ class StackCapturer {
 class FileSystemActivityCollector extends ActivityCollector {
   constructor({
       start
-    , captureArguments = false
-    , captureBuffers = false
-    , captureSource = false
     , captureStackFor = defaultCaptureStackFor
+    , bufferLength = 0
+    , stringLength = 0
+    , captureArguments = false
+    , captureSource = false
   }) {
     let captureStack = null
     if (captureStackFor != null) {
@@ -36,38 +38,12 @@ class FileSystemActivityCollector extends ActivityCollector {
     }
     super({ start, captureStack })
 
+    this._bufferLength = bufferLength
+    this._stringLength = stringLength
     this._captureArguments = captureArguments
-    this._captureBuffers = captureBuffers
     this._captureSource = captureSource
-  }
 
-  processFileSystemCallbacks() {
-    // need to operate on all activities, as prune creates a copy
-    for (const v of this.activities.values()) {
-      if (!includedResources.has(v.type)) return
-      if (v.context != null) {
-        Object.keys(v.context).forEach(k => {
-          const val = v.context[k]
-          if (typeof val !== 'function') return
-          const fn = v.context[k] = Object.assign(
-              {}
-            , functionOrigin(val)
-            , { name: val.name }
-          )
-          if (this._captureSource) fn.source = val.toString()
-          if (this._captureArguments) fn.arguments = val.arguments
-          if (!this._captureBufferArguments) {
-            fn.arguments = Object.keys(fn.arguments)
-              .reduce((acc, k) => {
-                const val = fn.arguments[k]
-                acc[k] = Buffer.isBuffer(val) ? '<Buffer>' : val
-                return acc
-              }, {})
-          }
-        })
-      }
-    }
-    return this
+    this._processed = new Set()
   }
 
   get fileSystemActivities() {
@@ -77,19 +53,74 @@ class FileSystemActivityCollector extends ActivityCollector {
     })
   }
 
+  cleanAllResources() {
+    for (const uid of this.activities.keys()) this._cleanupResource(uid)
+    return this
+  }
+
+  _clone(x) {
+    if (x == null) return x
+    return facileClone(
+        x
+      , { bufferLength: this._bufferLength, stringLength: this._stringLength }
+    )
+  }
+
+  _processFunction(func) {
+    const fn = Object.assign(
+        {}
+      , functionOrigin(func)
+      , { name: func.name }
+    )
+    if (this._captureSource) fn.source = func.toString()
+    if (this._captureArguments) fn.arguments = this._clone(func.arguments)
+    return fn
+  }
+
+  _processResource(resource) {
+    if (resource == null || resource.context == null) return null
+
+    const ctx = this._clone(resource.context)
+
+    // functions were removed by _clone, so we need to pull them
+    // from the original context
+    Object.keys(resource.context).forEach(k => {
+      const val = resource.context[k]
+      if (typeof val !== 'function') return
+      ctx[k] = this._processFunction(val)
+    })
+
+    return { context: ctx }
+  }
+
+  _cleanupResource(uid) {
+    if (this._processed.has(uid)) return
+    const activity = this.activities.get(uid)
+    activity.resource = this._processResource(activity.resource)
+    this._processed.add(uid)
+  }
+
   // @override
   _init(uid, type, triggerId, resource) {
     super._init(uid, type, triggerId, resource)
     const activity = this.activities.get(uid)
-    const ctx =  activity.context = resource.context
+    // Capture entire resource for now, we will process it and let go
+    // of the reference inside _after.
+    // We could capture here, but then we'd miss a bunch of information
+    // especially callback arguments
+    activity.resource = resource
+  }
 
-    // hold on to parts context only and leave resource to be GCed
-    // leave out Buffer since that's huge ;)
-    if (this._captureBuffers || ctx == null) return
+  // @override
+  _after(uid) {
+    super._after(uid)
+    this._cleanupResource(uid)
+  }
 
-    const buffer = ctx.buffer == null ? null : '<Buffer>'
-    const buffers = ctx.buffers == null ? null : ctx.buffers.map(x => '<Buffer>')
-    this.activities.get(uid).context = Object.assign({}, ctx, { buffers, buffer })
+  // @override
+  _destroy(uid) {
+    super._destroy(uid)
+    this._cleanupResource(uid)
   }
 }
 
@@ -109,9 +140,10 @@ const files = fs.readdirSync(p)
   .map(x => path.join(p, x))
 
 const collector = new FileSystemActivityCollector({
-  start: process.hrtime()
+    start: process.hrtime()
   , captureArguments: true
-  , captureSource: true
+  , captureSource: false
+  , bufferLength: 8
 }).enable()
 let tasks = 1 // files.length
 
@@ -130,7 +162,7 @@ function onread(err, src) {
   if (--tasks <= 0) {
     collector
       .processStacks()
-      .processFileSystemCallbacks()
+      .cleanAllResources()
     inspect(collector.fileSystemActivities)
   }
 }
