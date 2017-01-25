@@ -75,6 +75,10 @@ class FileSystemActivityCollector extends ActivityCollector {
    * meaningful data extracted and the reference to the actual resource removed
    * so it can be GCed.
    *
+   * Resources are cleaned during `after` and `destroy` events, therefore
+   * calling this function only affects those resources for which none of these
+   * events have fired yet.
+   *
    * @name fileSystemActivityCollector.cleanAllResources
    * @function
    * @return {FileSystemActivityCollector} fileSystemActivityCollector
