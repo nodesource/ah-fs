@@ -2,12 +2,43 @@ const ActivityCollector = require('ah-collector')
 const facileClone = require('facile-clone')
 const functionOrigin = require('function-origin')
 const prune = require('ah-prune')
+const stringifyBuffer = require('stringify-buffer')
 const StackCapturer = require('ah-stack-capturer')
 
 const types = new Set([ 'FSREQWRAP', 'FSREQUESTWRAP' ])
 const defaultStackCapturer = StackCapturer.forAllEvents(types)
 
 class FileSystemActivityCollector extends ActivityCollector {
+  /**
+   * Instantiates a FileSystemActivityCollector.
+   *
+   * Extends [ActivityCollector](https://github.com/thlorenz/ah-collector) and thus
+   * exposes the same [public
+   * API](https://github.com/thlorenz/ah-collector#api) with added
+   * functionality.
+   *
+   * @param {Array.<number>} $0.start the start time of the process, i.e. the result of `process.hrtime()`
+   * @param {StackCapturer} [$0.stackCapturer=StackCapturer] [see ah-stack-capturer](https://github.com/thlorenz/ah-stack-capturer) which
+   * configures how and when stacks traces are captured and processed.
+   *
+   * By default a StackCapturer is used that captures stacks for all events for
+   * file system related types: `FSREQWRAP`, `FSREQUESTWRAP`
+   *
+   * @param {number} [$0.bufferLength=0] determines how many elements of Buffers are
+   * captured. By default not Buffer data is captured.
+   *
+   * @param {number} [$0.stringLength=0] determines how much of each string is
+   * captured. By default no string data is captured.
+   *
+   * @param {boolean} [$0.captureArguments=false] if `true` arguments of callbacks
+   * are captured when they are processed.
+   *
+   * @param {boolean} [$0.captureSource=false] if `true` the source code of callbacks
+   * is captured when they are processed.
+   *
+   * @constructor
+   * @name FileSystemActivityCollector
+   */
   constructor({
       start
     , stackCapturer = defaultStackCapturer
@@ -26,6 +57,12 @@ class FileSystemActivityCollector extends ActivityCollector {
     this._processed = new Set()
   }
 
+  /**
+   * Getter that returns all activities related to file system operations.
+   *
+   * @name fileSystemActivityCollector.fileSystemActivities
+   * @return {Map.<string, object>} fileSystemActivities
+   */
   get fileSystemActivities() {
     return prune({
         activities: this.activities
@@ -33,12 +70,34 @@ class FileSystemActivityCollector extends ActivityCollector {
     })
   }
 
+  /**
+   * Cleans up all captured resources which means that they are processed,
+   * meaningful data extracted and the reference to the actual resource removed
+   * so it can be GCed.
+   *
+   * @name fileSystemActivityCollector.cleanAllResources
+   * @function
+   * @return {FileSystemActivityCollector} fileSystemActivityCollector
+   */
   cleanAllResources() {
     for (const uid of this.activities.keys()) this._cleanupResource(uid)
     return this
   }
 
-  stringifyBuffers() {
+  /**
+   * Finds all buffers that are part of the resources, including arguments
+   * passed to callbacks and stringifies their value for the supplied
+   * encodings.
+   *
+   * @name fileSystemActivityCollector.stringifyBuffers
+   * @function
+   * @param {Array.<string>} [encodings='utf8', 'hex']  specified for which encodings to create
+   * strings. In order to creates strings for all encodings, pass
+   * [stringify-buffer.encodings](https://github.com/thlorenz/stringify-buffer#stringifybufferencodings)
+   * @return {FileSystemActivityCollector} fileSystemActivityCollector
+   */
+  stringifyBuffers(encodings) {
+    if (encodings == null) encodings = [ 'utf8', 'hex' ]
     for (const a of this.activities.values()) {
       const ctx = a.resource && a.resource.context
       if (ctx == null) return
@@ -49,11 +108,11 @@ class FileSystemActivityCollector extends ActivityCollector {
     return this
   }
 
-  _stringifyBuffersOf(o) {
+  _stringifyBuffersOf(o, encodings) {
     function stringify(k) {
       const wrapper = o[k]
       if (wrapper == null || wrapper.type !== 'Buffer') return
-      wrapper.val = wrapper.val.toString()
+      wrapper.val = stringifyBuffer(wrapper.val, encodings)
     }
     Object.keys(o).forEach(stringify)
   }
