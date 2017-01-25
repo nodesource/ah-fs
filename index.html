@@ -1,0 +1,395 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset='utf-8' />
+  <title>  | Documentation</title>
+  <meta name='viewport' content='width=device-width,initial-scale=1'>
+  <link href='assets/bass.css' type='text/css' rel='stylesheet' />
+  <link href='assets/style.css' type='text/css' rel='stylesheet' />
+  <link href='assets/github.css' type='text/css' rel='stylesheet' />
+</head>
+<body class='documentation'>
+  <div class='max-width-4 mx-auto'>
+    <div class='clearfix md-mxn2'>
+      <div class='fixed xs-hide fix-3 overflow-auto max-height-100'>
+        <div class='py1 px2'>
+          <h3 class='mb0 no-anchor'></h3>
+          <div class='mb1'><code></code></div>
+          <input
+            placeholder='Filter'
+            id='filter-input'
+            class='col12 block input'
+            type='text' />
+          <div id='toc'>
+            <ul class='list-reset h5 py1-ul'>
+              
+                
+                <li><a
+                  href='#filesystemactivitycollector'
+                  class="">
+                  FileSystemActivityCollector
+                  
+                </a>
+                
+                </li>
+              
+                
+                <li><a
+                  href='#filesystemactivitycollectorfilesystemactivities'
+                  class="">
+                  fileSystemActivityCollector.fileSystemActivities
+                  
+                </a>
+                
+                </li>
+              
+                
+                <li><a
+                  href='#filesystemactivitycollectorcleanallresources'
+                  class="">
+                  fileSystemActivityCollector.cleanAllResources
+                  
+                </a>
+                
+                </li>
+              
+                
+                <li><a
+                  href='#filesystemactivitycollectorstringifybuffers'
+                  class="">
+                  fileSystemActivityCollector.stringifyBuffers
+                  
+                </a>
+                
+                </li>
+              
+            </ul>
+          </div>
+          <div class='mt1 h6 quiet'>
+            <a href='http://documentation.js.org/reading-documentation.html'>Need help reading this?</a>
+          </div>
+        </div>
+      </div>
+      <div class='fix-margin-3'>
+        
+          
+            <section class='p2 mb2 clearfix bg-white minishadow'>
+
+  
+  <div class='clearfix'>
+    
+    <h3 class='fl m0' id='filesystemactivitycollector'>
+      FileSystemActivityCollector
+    </h3>
+    
+    
+  </div>
+  
+
+  <p>Instantiates a FileSystemActivityCollector.</p>
+<p>Extends <a href="https://github.com/thlorenz/ah-collector">ActivityCollector</a> and thus
+exposes the same <a href="https://github.com/thlorenz/ah-collector#api">public
+API</a> with added
+functionality.</p>
+
+
+  <div class='pre p1 fill-light mt0'>new FileSystemActivityCollector($0.start: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array">Array</a>&#x3C;<a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Number">number</a>>, $0.stackCapturer: StackCapturer?, $0.bufferLength: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Number">number</a>?, $0.stringLength: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Number">number</a>?, $0.captureArguments: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Boolean">boolean</a>?, $0.captureSource: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Boolean">boolean</a>?)</div>
+  
+  
+
+  
+  
+  
+  
+  
+
+  
+    <div class='py1 quiet mt1 prose-big'>Parameters</div>
+    <div class='prose'>
+      
+        <div class='space-bottom0'>
+          <div>
+            <span class='code bold'>$0.start</span> <code class='quiet'>(<a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array">Array</a>&#x3C;<a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Number">number</a>>)</code>
+	    the start time of the process, i.e. the result of 
+<code>process.hrtime()</code>
+
+          </div>
+          
+        </div>
+      
+        <div class='space-bottom0'>
+          <div>
+            <span class='code bold'>$0.stackCapturer</span> <code class='quiet'>(StackCapturer?
+            = <code>StackCapturer</code>)</code>
+	    <a href="https://github.com/thlorenz/ah-stack-capturer">see ah-stack-capturer</a>
+ which
+configures how and when stacks traces are captured and processed.
+<p>By default a StackCapturer is used that captures stacks for all events for
+file system related types: <code>FSREQWRAP</code>, <code>FSREQUESTWRAP</code></p>
+
+          </div>
+          
+        </div>
+      
+        <div class='space-bottom0'>
+          <div>
+            <span class='code bold'>$0.bufferLength</span> <code class='quiet'>(<a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Number">number</a>?
+            = <code>0</code>)</code>
+	    determines how many elements of Buffers are
+captured. By default not Buffer data is captured.
+
+          </div>
+          
+        </div>
+      
+        <div class='space-bottom0'>
+          <div>
+            <span class='code bold'>$0.stringLength</span> <code class='quiet'>(<a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Number">number</a>?
+            = <code>0</code>)</code>
+	    determines how much of each string is
+captured. By default no string data is captured.
+
+          </div>
+          
+        </div>
+      
+        <div class='space-bottom0'>
+          <div>
+            <span class='code bold'>$0.captureArguments</span> <code class='quiet'>(<a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Boolean">boolean</a>?
+            = <code>false</code>)</code>
+	    if 
+<code>true</code>
+ arguments of callbacks
+are captured when they are processed.
+
+          </div>
+          
+        </div>
+      
+        <div class='space-bottom0'>
+          <div>
+            <span class='code bold'>$0.captureSource</span> <code class='quiet'>(<a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Boolean">boolean</a>?
+            = <code>false</code>)</code>
+	    if 
+<code>true</code>
+ the source code of callbacks
+is captured when they are processed.
+
+          </div>
+          
+        </div>
+      
+    </div>
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+</section>
+
+          
+        
+          
+            <section class='p2 mb2 clearfix bg-white minishadow'>
+
+  
+  <div class='clearfix'>
+    
+    <h3 class='fl m0' id='filesystemactivitycollectorfilesystemactivities'>
+      fileSystemActivityCollector.fileSystemActivities
+    </h3>
+    
+    
+  </div>
+  
+
+  <p>Getter that returns all activities related to file system operations.</p>
+
+
+  <div class='pre p1 fill-light mt0'>fileSystemActivityCollector.fileSystemActivities</div>
+  
+  
+
+  
+  
+  
+  
+  
+
+  
+
+  
+
+  
+    
+      <div class='py1 quiet mt1 prose-big'>Returns</div>
+      <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Map">Map</a>&#x3C;<a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String">string</a>, <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object">object</a>></code>:
+        fileSystemActivities
+
+      
+    
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+</section>
+
+          
+        
+          
+            <section class='p2 mb2 clearfix bg-white minishadow'>
+
+  
+  <div class='clearfix'>
+    
+    <h3 class='fl m0' id='filesystemactivitycollectorcleanallresources'>
+      fileSystemActivityCollector.cleanAllResources
+    </h3>
+    
+    
+  </div>
+  
+
+  <p>Cleans up all captured resources which means that they are processed,
+meaningful data extracted and the reference to the actual resource removed
+so it can be GCed.</p>
+<p>Resources are cleaned during <code>after</code> and <code>destroy</code> events, therefore
+calling this function only affects those resources for which none of these
+events have fired yet.</p>
+
+
+  <div class='pre p1 fill-light mt0'>fileSystemActivityCollector.cleanAllResources(): <a href="#filesystemactivitycollector">FileSystemActivityCollector</a></div>
+  
+  
+
+  
+  
+  
+  
+  
+
+  
+
+  
+
+  
+    
+      <div class='py1 quiet mt1 prose-big'>Returns</div>
+      <code><a href="#filesystemactivitycollector">FileSystemActivityCollector</a></code>:
+        fileSystemActivityCollector
+
+      
+    
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+</section>
+
+          
+        
+          
+            <section class='p2 mb2 clearfix bg-white minishadow'>
+
+  
+  <div class='clearfix'>
+    
+    <h3 class='fl m0' id='filesystemactivitycollectorstringifybuffers'>
+      fileSystemActivityCollector.stringifyBuffers
+    </h3>
+    
+    
+  </div>
+  
+
+  <p>Finds all buffers that are part of the resources, including arguments
+passed to callbacks and stringifies their value for the supplied
+encodings.</p>
+
+
+  <div class='pre p1 fill-light mt0'>fileSystemActivityCollector.stringifyBuffers(encodings: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array">Array</a>&#x3C;<a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String">string</a>>?): <a href="#filesystemactivitycollector">FileSystemActivityCollector</a></div>
+  
+  
+
+  
+  
+  
+  
+  
+
+  
+    <div class='py1 quiet mt1 prose-big'>Parameters</div>
+    <div class='prose'>
+      
+        <div class='space-bottom0'>
+          <div>
+            <span class='code bold'>encodings</span> <code class='quiet'>(<a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array">Array</a>&#x3C;<a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String">string</a>>?
+            = <code>&#39;utf8&#39;,&#39;hex&#39;</code>)</code>
+	    specified for which encodings to create
+strings. In order to creates strings for all encodings, pass
+
+<a href="https://github.com/thlorenz/stringify-buffer#stringifybufferencodings">stringify-buffer.encodings</a>
+
+          </div>
+          
+        </div>
+      
+    </div>
+  
+
+  
+
+  
+    
+      <div class='py1 quiet mt1 prose-big'>Returns</div>
+      <code><a href="#filesystemactivitycollector">FileSystemActivityCollector</a></code>:
+        fileSystemActivityCollector
+
+      
+    
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+</section>
+
+          
+        
+      </div>
+    </div>
+  </div>
+  <script src='assets/anchor.js'></script>
+  <script src='assets/site.js'></script>
+</body>
+</html>
