@@ -46,6 +46,10 @@ Cleans up all captured resources which means that they are processed,
 meaningful data extracted and the reference to the actual resource removed
 so it can be GCed.
 
+Resources are cleaned during `after` and `destroy` events, therefore
+calling this function only affects those resources for which none of these
+events have fired yet.
+
 Returns **[FileSystemActivityCollector](#filesystemactivitycollector)** fileSystemActivityCollector
 
 ### fileSystemActivityCollector.stringifyBuffers
