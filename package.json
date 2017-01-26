@@ -4,7 +4,7 @@
   "description": "Tracks async hook events related to file system operations.",
   "main": "ah-fs.js",
   "scripts": {
-    "test": "tape test/*.js",
+    "test": "set -e; for t in test/*.js; do node $t; done",
     "doc": "gendo"
   },
   "repository": {
@@ -13,7 +13,7 @@
   },
   "homepage": "https://github.com/thlorenz/ah-fs",
   "dependencies": {
-    "ah-collector": "0.0.3",
+    "ah-collector": "0.0.4",
     "ah-prune": "~1.0.0",
     "ah-stack-capturer": "~1.0.0",
     "facile-clone": "~1.0.1",
@@ -21,6 +21,9 @@
     "stringify-buffer": "~1.1.0"
   },
   "devDependencies": {
+    "json-stringify-safe": "~5.0.1",
+    "ocat": "~0.1.0",
+    "spok": "~0.4.0",
     "tape": "~4.6.3"
   },
   "keywords": [],

@@ -104,10 +104,10 @@ class FileSystemActivityCollector extends ActivityCollector {
     if (encodings == null) encodings = [ 'utf8', 'hex' ]
     for (const a of this.activities.values()) {
       const ctx = a.resource && a.resource.context
-      if (ctx == null) return
-      this._stringifyBuffersOf(ctx)
+      if (ctx == null) continue
+      this._stringifyBuffersOf(ctx, encodings)
       const args = ctx.callback && ctx.callback.arguments
-      if (args != null) this._stringifyBuffersOf(args)
+      if (args != null) this._stringifyBuffersOf(args, encodings)
     }
     return this
   }
@@ -187,47 +187,4 @@ class FileSystemActivityCollector extends ActivityCollector {
   }
 }
 
-// eslint-disable-next-line no-unused-vars
-const print = process._rawDebug
-// eslint-disable-next-line no-unused-vars
-function inspect(obj, depth) {
-  console.error(require('util').inspect(obj, false, depth || 15, true))
-}
-
-const fs = require('fs')
-const path = require('path')
-const p = __dirname
-
-const files = fs.readdirSync(p)
-  .filter(x => fs.statSync(x).isFile())
-  .map(x => path.join(p, x))
-
-const collector = new FileSystemActivityCollector({
-    start: process.hrtime()
-  , captureArguments: true
-  , captureSource: false
-  , bufferLength: 18
-}).enable()
-let tasks = 1 // files.length
-
-function readFiles(files) {
-  files.slice(1, 2).forEach(readFile)
-}
-
-function readFile(x) {
-  fs.readFile(x, onread)
-}
-
-readFiles(files)
-
-function onread(err, src) {
-  if (err) return console.error(err)
-  if (--tasks <= 0) {
-    collector
-      .processStacks()
-      .cleanAllResources()
-      .stringifyBuffers()
-
-    inspect(collector.fileSystemActivities)
-  }
-}
+module.exports = FileSystemActivityCollector
