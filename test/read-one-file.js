@@ -13,7 +13,9 @@ function inspect(obj, depth) {
 
 function arrayElements(n) {
   return function checkCount(array) {
-    return spok.array(array) && array.length === n
+    const pass = spok.array(array) && array.length === n
+    if (!pass) console.error(`Expected ${n}, but found ${array.length} elements.`)
+    return pass
   }
 }
 
@@ -91,7 +93,7 @@ test('\nreading one file', function(t) {
        , after        : arrayElements(1)
        , afterStacks  : arrayElements(1)
        , destroy      : arrayElements(1)
-       , destroyStack : arrayElements(0) }
+       , destroyStack : spok.array }
     )
     const stat = xs.next().value
     spok(t, stat,
@@ -106,7 +108,7 @@ test('\nreading one file', function(t) {
        , after        : arrayElements(1)
        , afterStacks  : arrayElements(1)
        , destroy      : arrayElements(1)
-       , destroyStack : arrayElements(0) }
+       , destroyStack : spok.array }
     )
     const read = xs.next().value
     spok(t, read,
@@ -121,7 +123,7 @@ test('\nreading one file', function(t) {
        , after        : arrayElements(1)
        , afterStacks  : arrayElements(1)
        , destroy      : arrayElements(1)
-       , destroyStack : arrayElements(0) }
+       , destroyStack : spok.array }
     )
     const close = xs.next().value
     spok(t, close,
@@ -136,7 +138,7 @@ test('\nreading one file', function(t) {
        , after        : arrayElements(1)
        , afterStacks  : arrayElements(1)
        , destroy      : arrayElements(1)
-       , destroyStack : arrayElements(0) }
+       , destroyStack : spok.array }
     )
 
     const openCtx = contextOf(open)
