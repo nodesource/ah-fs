@@ -9,9 +9,9 @@
   },
   "repository": {
     "type": "git",
-    "url": "git://github.com/thlorenz/ah-fs.git"
+    "url": "git://github.com/nodesource/ah-fs.git"
   },
-  "homepage": "https://github.com/thlorenz/ah-fs",
+  "homepage": "https://github.com/nodesource/ah-fs",
   "dependencies": {
     "ah-collector": "0.0.4",
     "ah-prune": "~1.0.0",
@@ -34,7 +34,7 @@
   },
   "license": {
     "type": "MIT",
-    "url": "https://github.com/thlorenz/ah-fs/blob/master/LICENSE"
+    "url": "https://github.com/nodesource/ah-fs/blob/master/LICENSE"
   },
   "engine": {
     "node": ">=0.10"

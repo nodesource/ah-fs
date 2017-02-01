@@ -12,13 +12,13 @@ class FileSystemActivityCollector extends ActivityCollector {
   /**
    * Instantiates a FileSystemActivityCollector.
    *
-   * Extends [ActivityCollector](https://github.com/thlorenz/ah-collector) and thus
+   * Extends [ActivityCollector](https://github.com/nodesource/ah-collector) and thus
    * exposes the same [public
-   * API](https://github.com/thlorenz/ah-collector#api) with added
+   * API](https://github.com/nodesource/ah-collector#api) with added
    * functionality.
    *
    * @param {Array.<number>} $0.start the start time of the process, i.e. the result of `process.hrtime()`
-   * @param {StackCapturer} [$0.stackCapturer=StackCapturer] [see ah-stack-capturer](https://github.com/thlorenz/ah-stack-capturer) which
+   * @param {StackCapturer} [$0.stackCapturer=StackCapturer] [see ah-stack-capturer](https://github.com/nodesource/ah-stack-capturer) which
    * configures how and when stacks traces are captured and processed.
    *
    * By default a StackCapturer is used that captures stacks for all events for
@@ -97,7 +97,7 @@ class FileSystemActivityCollector extends ActivityCollector {
    * @function
    * @param {Array.<string>} [encodings='utf8', 'hex']  specified for which encodings to create
    * strings. In order to creates strings for all encodings, pass
-   * [stringify-buffer.encodings](https://github.com/thlorenz/stringify-buffer#stringifybufferencodings)
+   * [stringify-buffer.encodings](https://github.com/nodesource/stringify-buffer#stringifybufferencodings)
    * @return {FileSystemActivityCollector} fileSystemActivityCollector
    */
   stringifyBuffers(encodings) {
