@@ -4,6 +4,8 @@ const functionOrigin = require('function-origin')
 const prune = require('ah-prune')
 const stringifyBuffer = require('stringify-buffer')
 const StackCapturer = require('ah-stack-capturer')
+/* eslint-disable no-unused-vars */
+const print = process._rawDebug
 
 const types = new Set([ 'FSREQWRAP', 'FSREQUESTWRAP' ])
 const defaultStackCapturer = StackCapturer.forAllEvents(types)
@@ -172,6 +174,7 @@ class FileSystemActivityCollector extends ActivityCollector {
     // We could capture here, but then we'd miss a bunch of information
     // especially callback arguments
     activity.resource = resource
+    // if (type === 'FSREQWRAP') print(resource)
   }
 
   // @override

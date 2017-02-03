@@ -1,6 +1,8 @@
 const test = require('tape')
 const spok = require('spok')
 const FileSystemActivityCollector = require('../')
+const arrayElements = require('./util/array-elements')
+const tick = require('./util/tick')
 
 /* eslint-disable no-unused-vars */
 const ocat = require('./util/ocat')
@@ -10,14 +12,6 @@ function inspect(obj, depth) {
   console.error(require('util').inspect(obj, false, depth || 15, true))
 }
 /* eslint-enable no-unused-vars */
-
-function arrayElements(n) {
-  return function checkCount(array) {
-    const pass = spok.array(array) && array.length === n
-    if (!pass) console.error(`Expected ${n}, but found ${array.length} elements.`)
-    return pass
-  }
-}
 
 function contextOf(activity) {
   return activity.resource.context
@@ -56,16 +50,13 @@ test('\nreading one file', function(t) {
     // whenever possible
     collector.cleanAllResources()
 
-    // allow `close` 'after' to fire
-    setImmediate(() => {
-      // allow `close` 'destroy' to fire
-      setImmediate(() => {
-        collector
-          .processStacks()
-          .stringifyBuffers()
+    // allow `close` 'after' and `destroy` to fire
+    tick(2, () => {
+      collector
+        .processStacks()
+        .stringifyBuffers()
 
-        runTest(collector.fileSystemActivities)
-      })
+      runTest(collector.fileSystemActivities)
     })
   }
 
