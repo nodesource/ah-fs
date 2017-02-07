@@ -3,6 +3,7 @@ const spok = require('spok')
 const FileSystemActivityCollector = require('../')
 const arrayElements = require('./util/array-elements')
 const tick = require('./util/tick')
+const { checkBuffer, allEqual } = require('./util/checks')
 
 /* eslint-disable no-unused-vars */
 const ocat = require('./util/ocat')
@@ -15,18 +16,6 @@ function inspect(obj, depth) {
 
 function contextOf(activity) {
   return activity.resource.context
-}
-
-function allEqual(t, prop, ...args) {
-  const val = args[0][prop]
-  args.slice(1).forEach((x, idx) => t.equal(x[prop], val, `${prop} [${idx}]`))
-}
-
-function checkBuffer(t, buf, src, topic) {
-  t.ok(buf, `${topic}: buffer exists`)
-  t.equal(buf.type, 'Buffer', `${topic}: correct type`)
-  t.equal(buf.included, BUFFERLENGTH, `${topic}: included right amount`)
-  t.equal(buf.val.utf8, src, `${topic}: correct utf8 value`)
 }
 
 const fs = require('fs')
@@ -143,10 +132,10 @@ test('\nreading one file', function(t) {
     allEqual(t, 'name', openCtx.callback, statCtx.callback, readCtx.callback, closeCtx.callback)
 
     const src = fs.readFileSync(__filename).slice(0, BUFFERLENGTH).toString()
-    checkBuffer(t, statCtx.buffer, src, 'stat buffer')
-    checkBuffer(t, readCtx.buffer, src, 'read buffer')
-    checkBuffer(t, closeCtx.buffer, src, 'close buffer')
-    checkBuffer(t, closeCtx.callback.arguments['1'], src, 'close buffer ')
+    checkBuffer(t, statCtx.buffer, src, BUFFERLENGTH, 'stat buffer')
+    checkBuffer(t, readCtx.buffer, src, BUFFERLENGTH, 'read buffer')
+    checkBuffer(t, closeCtx.buffer, src, BUFFERLENGTH, 'close buffer')
+    checkBuffer(t, closeCtx.callback.arguments['1'], src, BUFFERLENGTH, 'close buffer ')
 
     t.end()
   }
