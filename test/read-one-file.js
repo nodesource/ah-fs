@@ -45,6 +45,7 @@ test('\nreading one file', function(t) {
         .processStacks()
         .stringifyBuffers()
 
+      save('read-fs-only', Array.from(collector.fileSystemActivities))
       runTest(collector.fileSystemActivities)
     })
   }
@@ -136,6 +137,11 @@ test('\nreading one file', function(t) {
     checkBuffer(t, readCtx.buffer, src, BUFFERLENGTH, 'read buffer')
     checkBuffer(t, closeCtx.buffer, src, BUFFERLENGTH, 'close buffer')
     checkBuffer(t, closeCtx.callback.arguments['1'], src, BUFFERLENGTH, 'close buffer ')
+
+    t.equal(openCtx.proto, 'ReadFileContext', 'open proto is ReadFileContext')
+    t.equal(statCtx.proto, 'ReadFileContext', 'stat proto is ReadFileContext')
+    t.equal(readCtx.proto, 'ReadFileContext', 'read proto is ReadFileContext')
+    t.equal(closeCtx.proto, 'ReadFileContext', 'close proto is ReadFileContext')
 
     t.end()
   }

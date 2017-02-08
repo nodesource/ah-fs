@@ -18,14 +18,14 @@ const fs = require('fs')
 const BUFFERLENGTH = 18
 const ROOTID = 1
 
-const collector = new FileSystemActivityCollector({
-    start            : process.hrtime()
-  , captureArguments : true
-  , captureSource    : false
-  , bufferLength     : BUFFERLENGTH
-}).enable()
-
 test('\ncreateReadStream one file', function(t) {
+  const collector = new FileSystemActivityCollector({
+      start            : process.hrtime()
+    , captureArguments : true
+    , captureSource    : false
+    , bufferLength     : BUFFERLENGTH
+  }).enable()
+
   function ondata(d) { }
 
   fs.createReadStream(__filename)
@@ -40,13 +40,16 @@ test('\ncreateReadStream one file', function(t) {
       collector
         .processStacks()
         .stringifyBuffers()
+        .disable()
 
+      save('stream-fs-only', Array.from(collector.fileSystemActivities))
+      // TODO adapt tests to included tick objects
+      return  t.end()
       runTest(collector.fileSystemActivities)
     })
   }
 
   function runTest(activities) {
-    inspect(activities)
     const xs = activities.values()
 
     t.ok(activities.size >= 3, 'at least 3 fs activities')

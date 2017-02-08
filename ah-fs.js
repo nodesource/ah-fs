@@ -10,6 +10,18 @@ const print = process._rawDebug
 const types = new Set([ 'FSREQWRAP', 'FSREQUESTWRAP' ])
 const defaultStackCapturer = StackCapturer.forAllEvents(types)
 
+function isfsType(type) {
+  return types.has(type)
+}
+
+function isreadStreamTickObject(type, activity) {
+  if (type !== 'TickObject') return false
+  if (activity.resource == null || activity.resource.args == null) return false
+  const args = activity.resource.args
+  if (!Array.isArray(args) || args.length === 0) return false
+  return args[0].readable
+}
+
 class FileSystemActivityCollector extends ActivityCollector {
   /**
    * Instantiates a FileSystemActivityCollector.
@@ -60,7 +72,8 @@ class FileSystemActivityCollector extends ActivityCollector {
   }
 
   /**
-   * Getter that returns all activities related to file system operations.
+   * Getter that eturns all activities related to file system operations including
+   * things like TickObjects that have a ReadStream attached.
    *
    * @name fileSystemActivityCollector.fileSystemActivities
    * @return {Map.<string, object>} fileSystemActivities
@@ -68,7 +81,9 @@ class FileSystemActivityCollector extends ActivityCollector {
   get fileSystemActivities() {
     return prune({
         activities: this.activities
-      , keep: types
+      , keepFn(type, activity) {
+          return isfsType(type) || isreadStreamTickObject(type, activity)
+        }
     })
   }
 
@@ -142,8 +157,24 @@ class FileSystemActivityCollector extends ActivityCollector {
     return fn
   }
 
+  _processArgs(args) {
+    const copy = new Array(args.length)
+    for (let i = 0; i < args.length; i++) {
+      // capturing all strings so we get file paths and flags if found
+      copy[i] = facileClone(args[i], { stringLength: Infinity })
+    }
+    return copy
+  }
+
   _processResource(resource) {
-    if (resource == null || resource.context == null) return null
+    if (resource == null) return null
+
+    // TickObjects have no context, but they have an args array
+    if (resource.context == null && resource.args != null) {
+      return { args: this._processArgs(resource.args) }
+    }
+    // no context or args
+    if (resource.context == null) return null
 
     const ctx = this._clone(resource.context)
 
@@ -173,8 +204,8 @@ class FileSystemActivityCollector extends ActivityCollector {
     // of the reference inside _after.
     // We could capture here, but then we'd miss a bunch of information
     // especially callback arguments
+
     activity.resource = resource
-    // if (type === 'FSREQWRAP') print(resource)
   }
 
   // @override

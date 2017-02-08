@@ -16,7 +16,7 @@
     "ah-collector": "0.0.4",
     "ah-prune": "~1.0.0",
     "ah-stack-capturer": "~1.0.0",
-    "facile-clone": "~1.0.1",
+    "facile-clone": "~1.1.1",
     "function-origin": "~1.1.1",
     "stringify-buffer": "~1.1.0"
   },
