@@ -8,7 +8,6 @@ const StackCapturer = require('ah-stack-capturer')
 const print = process._rawDebug
 
 const types = new Set([ 'FSREQWRAP', 'FSREQUESTWRAP' ])
-const defaultStackCapturer = StackCapturer.forAllEvents(types)
 
 function isfsType(type) {
   return types.has(type)
@@ -21,6 +20,14 @@ function isreadStreamTickObject(type, activity) {
   if (!Array.isArray(args) || args.length === 0) return false
   return args[0].readable
 }
+
+const defaultStackCapturer = new StackCapturer({
+  shouldCapture(event, type, activity) {
+    // could include stream tick objects here, but those stacks
+    // are useless as they just contain two traces of process/next_tick.js
+    return isfsType(type)
+  }
+})
 
 class FileSystemActivityCollector extends ActivityCollector {
   /**
@@ -36,7 +43,9 @@ class FileSystemActivityCollector extends ActivityCollector {
    * configures how and when stacks traces are captured and processed.
    *
    * By default a StackCapturer is used that captures stacks for all events for
-   * file system related types: `FSREQWRAP`, `FSREQUESTWRAP`
+   * file system related types: `FSREQWRAP`, `FSREQUESTWRAP` and some others like
+   * `TickObject`s that also are related, i.e. if they contain information related
+   * to streams.
    *
    * @param {number} [$0.bufferLength=0] determines how many elements of Buffers are
    * captured. By default not Buffer data is captured.
@@ -61,7 +70,7 @@ class FileSystemActivityCollector extends ActivityCollector {
     , captureArguments = false
     , captureSource = false
   }) {
-    super({ start, stackCapturer })
+    super({ start, stackCapturer, requireInit: true })
 
     this._bufferLength = bufferLength
     this._stringLength = stringLength
@@ -101,7 +110,7 @@ class FileSystemActivityCollector extends ActivityCollector {
    * @return {FileSystemActivityCollector} fileSystemActivityCollector
    */
   cleanAllResources() {
-    for (const uid of this.activities.keys()) this._cleanupResource(uid)
+    for (const [ uid, h ] of this.activities) this._cleanupResource(h, uid)
     return this
   }
 
@@ -189,7 +198,8 @@ class FileSystemActivityCollector extends ActivityCollector {
     return { context: ctx }
   }
 
-  _cleanupResource(uid) {
+  _cleanupResource(h, uid) {
+    if (h == null) return
     if (this._processed.has(uid)) return
     const activity = this.activities.get(uid)
     activity.resource = this._processResource(activity.resource)
@@ -198,26 +208,28 @@ class FileSystemActivityCollector extends ActivityCollector {
 
   // @override
   _init(uid, type, triggerId, resource) {
-    super._init(uid, type, triggerId, resource)
-    const activity = this.activities.get(uid)
+    const activity = super._init(uid, type, triggerId, resource)
     // Capture entire resource for now, we will process it and let go
     // of the reference inside _after.
     // We could capture here, but then we'd miss a bunch of information
     // especially callback arguments
 
     activity.resource = resource
+    return activity
   }
 
   // @override
   _after(uid) {
-    super._after(uid)
-    this._cleanupResource(uid)
+    const h = super._after(uid)
+    this._cleanupResource(h, uid)
+    return h
   }
 
   // @override
   _destroy(uid) {
-    super._destroy(uid)
-    this._cleanupResource(uid)
+    const h = super._destroy(uid)
+    this._cleanupResource(h, uid)
+    return h
   }
 }
 
