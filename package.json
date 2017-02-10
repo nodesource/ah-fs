@@ -18,12 +18,13 @@
     "ah-stack-capturer": "~1.1.0",
     "facile-clone": "~1.1.1",
     "function-origin": "~1.1.1",
+    "function-scout": "~0.2.0",
     "stringify-buffer": "~1.1.0"
   },
   "devDependencies": {
     "json-stringify-safe": "~5.0.1",
     "ocat": "~0.1.0",
-    "spok": "~0.4.0",
+    "spok": "~0.5.0",
     "tape": "~4.6.3"
   },
   "keywords": [],

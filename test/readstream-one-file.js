@@ -3,6 +3,7 @@ const spok = require('spok')
 const FileSystemActivityCollector = require('../')
 const arrayElements = require('./util/array-elements')
 const tick = require('./util/tick')
+const { checkFunction } = require('./util/checks')
 const ah = require('async_hooks')
 
 /* eslint-disable no-unused-vars */
@@ -90,12 +91,11 @@ test('\ncreateReadStream one file', function(t) {
     , bufferLength     : BUFFERLENGTH
   }).enable()
 
-  function ondata(d) { }
-
   fs.createReadStream(__filename)
     .on('data', ondata)
     .on('end', onend)
 
+  function ondata(d) { }
   function onend() {
     collector.cleanAllResources()
 
@@ -183,6 +183,42 @@ test('\ncreateReadStream one file', function(t) {
     )
 
     t.ok(xs.next().done, 'done after processing close')
+
+    checkFunction(t, streamTick2.resource.functions, {
+        path: [ 'args', '0', '_events', 'end', '0' ]
+      , key: '0'
+      , level: 4
+      , info: {
+          file: 'fs.js'
+        , line: spok.gtz
+        , column: spok.gtz
+        , inferredName: ''
+        , name: '' }
+    })
+    checkFunction(t, streamTick2.resource.functions, {
+        path: [ 'args', '0', '_events', 'end', '1' ]
+      , key: '1'
+      , level: 4
+      , info: {
+            file: spok.endsWith('readstream-one-file.js')
+          , line: spok.gt(90)
+          , column: spok.gtz
+          , inferredName: ''
+          , name: 'onend'
+        }
+    })
+    checkFunction(t, streamTick2.resource.functions, {
+        path: [ 'args', '0', '_events', 'data' ]
+      , key: 'data'
+      , level: 3
+      , info: {
+            file: spok.endsWith('readstream-one-file.js')
+          , line: spok.gt(90)
+          , column: spok.gtz
+          , inferredName: ''
+          , name: 'ondata'
+      }
+    })
 
     t.end()
   }

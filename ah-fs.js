@@ -1,11 +1,12 @@
 const ActivityCollector = require('ah-collector')
 const facileClone = require('facile-clone')
-const functionOrigin = require('function-origin')
 const prune = require('ah-prune')
 const stringifyBuffer = require('stringify-buffer')
 const StackCapturer = require('ah-stack-capturer')
+const functionScout = require('function-scout')
 /* eslint-disable no-unused-vars */
-const print = process._rawDebug
+const util = require('util')
+const print = obj => process._rawDebug(util.inspect(obj, true, 15, true))
 
 const types = new Set([ 'FSREQWRAP', 'FSREQUESTWRAP' ])
 
@@ -107,10 +108,16 @@ class FileSystemActivityCollector extends ActivityCollector {
    *
    * @name fileSystemActivityCollector.cleanAllResources
    * @function
+   *
+   * @param {boolean} [collectFunctionInfo=false] if `true` it will collect info of all
+   * functions found on the hooks resources. Set to `false` if you're calling this from
+   * inside an async-hook callback since this otherwise crashes the process
+   *
    * @return {FileSystemActivityCollector} fileSystemActivityCollector
    */
-  cleanAllResources() {
-    for (const [ uid, h ] of this.activities) this._cleanupResource(h, uid)
+  cleanAllResources(collectFunctionInfo = false) {
+    // TODO: setting this `true` segfaults in most cases
+    for (const [ uid, h ] of this.activities) this._cleanupResource(h, uid, { collectFunctionInfo })
     return this
   }
 
@@ -129,16 +136,25 @@ class FileSystemActivityCollector extends ActivityCollector {
   stringifyBuffers(encodings) {
     if (encodings == null) encodings = [ 'utf8', 'hex' ]
     for (const a of this.activities.values()) {
-      const ctx = a.resource && a.resource.context
-      if (ctx == null) continue
-      this._stringifyBuffersOf(ctx, encodings)
-      const args = ctx.callback && ctx.callback.arguments
-      if (args != null) this._stringifyBuffersOf(args, encodings)
+      const resource = a.resource
+      if (resource == null) continue
+      const ctx = resource.context
+      if (ctx != null) {
+        this._stringifyBuffersOf(ctx, encodings)
+      }
+      const functions = resource.functions
+      if (functions == null) continue
+
+      for (let i = 0; i < functions.length; i++) {
+        this._stringifyBuffersOf(functions[i].arguments, encodings)
+      }
     }
     return this
   }
 
   _stringifyBuffersOf(o, encodings) {
+    if (o == null) return
+
     function stringify(k) {
       const wrapper = o[k]
       if (wrapper == null || wrapper.type !== 'Buffer') return
@@ -155,54 +171,81 @@ class FileSystemActivityCollector extends ActivityCollector {
     )
   }
 
-  _processFunction(func) {
-    const fn = Object.assign(
-        {}
-      , functionOrigin(func)
-      , { name: func.name }
-    )
-    if (this._captureSource) fn.source = func.toString()
-    if (this._captureArguments) fn.arguments = this._clone(func.arguments)
-    return fn
+  _scoutFunctions(ctx, name) {
+    const capture = this._captureArguments || this._captureSource
+    const { functions }  = functionScout(ctx, { referenceFunction: capture })
+
+    function adjustInfo(info) {
+      // Point out to the user that these were attached to a specific property
+      info.path.unshift(name)
+
+      if (!capture) return
+
+      // attach extra info if so required
+      const fn = info.info && info.info.function
+      if (fn == null) return
+
+      try {
+        info.arguments = this._clone(fn.arguments)
+      } catch (e) {
+        // We aren't allowed to access function arguments, if they
+        // were created in 'use strict' mode. This affects all core functions.
+        info.arguments = '<Inaccessible>'
+      }
+      if (this._captureSource) info.source = fn.toString()
+
+      // Make sure we loose the function reference
+      // Is delete expensive here? Not passing this into a function,
+      // so the Object Map isn't that important.
+      // Assigning to undefined is alternative, but clutters return value.
+      delete info.info.function
+    }
+
+    functions.forEach(adjustInfo, this)
+    return functions
   }
 
-  _processArgs(args) {
+  _processArgs(args, { collectFunctionInfo }) {
     const copy = new Array(args.length)
     for (let i = 0; i < args.length; i++) {
       // capturing all strings so we get file paths and flags if found
-      copy[i] = facileClone(args[i], { stringLength: Infinity })
+      copy[i] = facileClone(
+          args[i]
+        , { stringLength: Infinity })
     }
-    return copy
+
+    if (!collectFunctionInfo) return { args: copy }
+
+    const functions = this._scoutFunctions(args, 'args')
+    return { args: copy, functions }
   }
 
-  _processResource(resource) {
+  _processResource(resource, { collectFunctionInfo }) {
     if (resource == null) return null
 
     // TickObjects have no context, but they have an args array
     if (resource.context == null && resource.args != null) {
-      return { args: this._processArgs(resource.args) }
+      const { args, functions } = this._processArgs(resource.args, { collectFunctionInfo })
+      return collectFunctionInfo ? { args, functions } : { args }
     }
     // no context or args
     if (resource.context == null) return null
 
+    // For now we always capture funcion info when we are dealing with an fs context
+    // that has a callback.
+    // Only for args of a stream did we see crashes when getting the function origin
+    // of contained functions.
     const ctx = this._clone(resource.context)
-
-    // functions were removed by _clone, so we need to pull them
-    // from the original context
-    Object.keys(resource.context).forEach(k => {
-      const val = resource.context[k]
-      if (typeof val !== 'function') return
-      ctx[k] = this._processFunction(val)
-    })
-
-    return { context: ctx }
+    const functions = this._scoutFunctions(resource.context, 'context')
+    return { context: ctx, functions }
   }
 
-  _cleanupResource(h, uid) {
+  _cleanupResource(h, uid, { collectFunctionInfo }) {
     if (h == null) return
     if (this._processed.has(uid)) return
     const activity = this.activities.get(uid)
-    activity.resource = this._processResource(activity.resource)
+    const processed = this._processResource(activity.resource, { collectFunctionInfo })
+    activity.resource = processed
     this._processed.add(uid)
   }
 
@@ -221,14 +264,14 @@ class FileSystemActivityCollector extends ActivityCollector {
   // @override
   _after(uid) {
     const h = super._after(uid)
-    this._cleanupResource(h, uid)
+    this._cleanupResource(h, uid, { collectFunctionInfo: true })
     return h
   }
 
   // @override
   _destroy(uid) {
     const h = super._destroy(uid)
-    this._cleanupResource(h, uid)
+    this._cleanupResource(h, uid, { collectFunctionInfo: true })
     return h
   }
 }

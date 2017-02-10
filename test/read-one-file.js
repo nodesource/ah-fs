@@ -3,7 +3,7 @@ const spok = require('spok')
 const FileSystemActivityCollector = require('../')
 const arrayElements = require('./util/array-elements')
 const tick = require('./util/tick')
-const { checkBuffer, allEqual } = require('./util/checks')
+const { checkBuffer, checkFunction, allEqual } = require('./util/checks')
 
 /* eslint-disable no-unused-vars */
 const ocat = require('./util/ocat')
@@ -16,6 +16,10 @@ function inspect(obj, depth) {
 
 function contextOf(activity) {
   return activity.resource.context
+}
+
+function functionsOf(activity) {
+  return activity.resource.functions
 }
 
 const fs = require('fs')
@@ -45,7 +49,7 @@ test('\nreading one file', function(t) {
         .processStacks()
         .stringifyBuffers()
 
-      save('read-fs-only', Array.from(collector.fileSystemActivities))
+      // save('read-fs-only', Array.from(collector.fileSystemActivities))
       runTest(collector.fileSystemActivities)
     })
   }
@@ -122,6 +126,10 @@ test('\nreading one file', function(t) {
        , destroyStack : spok.array }
     )
 
+    //
+    // Context
+    //
+
     const openCtx = contextOf(open)
     const statCtx = contextOf(stat)
     const readCtx = contextOf(read)
@@ -129,19 +137,60 @@ test('\nreading one file', function(t) {
 
     t.ok(openCtx.fd > 0, 'valid file descriptor')
     allEqual(t, 'fd', openCtx, statCtx, readCtx, closeCtx)
-    allEqual(t, 'file', openCtx.callback, statCtx.callback, readCtx.callback, closeCtx.callback)
-    allEqual(t, 'name', openCtx.callback, statCtx.callback, readCtx.callback, closeCtx.callback)
 
     const src = fs.readFileSync(__filename).slice(0, BUFFERLENGTH).toString()
     checkBuffer(t, statCtx.buffer, src, BUFFERLENGTH, 'stat buffer')
     checkBuffer(t, readCtx.buffer, src, BUFFERLENGTH, 'read buffer')
     checkBuffer(t, closeCtx.buffer, src, BUFFERLENGTH, 'close buffer')
-    checkBuffer(t, closeCtx.callback.arguments['1'], src, BUFFERLENGTH, 'close buffer ')
 
     t.equal(openCtx.proto, 'ReadFileContext', 'open proto is ReadFileContext')
     t.equal(statCtx.proto, 'ReadFileContext', 'stat proto is ReadFileContext')
     t.equal(readCtx.proto, 'ReadFileContext', 'read proto is ReadFileContext')
     t.equal(closeCtx.proto, 'ReadFileContext', 'close proto is ReadFileContext')
+
+    //
+    // Functions
+    //
+
+    // check that all resources have the callback function
+    const openFns = functionsOf(open)
+    const statFns = functionsOf(stat)
+    const readFns = functionsOf(read)
+    const closeFns = functionsOf(close)
+    t.equal(openFns.length, 1, 'open includes one function')
+    t.equal(statFns.length, 1, 'stat includes one function')
+    t.equal(readFns.length, 1, 'read includes one function')
+    t.equal(closeFns.length, 1, 'close includes one function')
+
+    const callback = {
+        path: [ 'context', 'callback' ]
+      , key: 'callback'
+      , level: 1
+      , info: spok.endsWith('read-one-file.js')
+      , line: spok.gtz
+      , column: spok.gtz
+      , inferredName: ''
+      , name: 'onread'
+    }
+
+    checkFunction(t, openFns, callback)
+    checkFunction(t, statFns, callback)
+    checkFunction(t, readFns, callback)
+    checkFunction(t, closeFns, callback)
+
+    const closeArg = closeFns[0].arguments[1]
+
+    spok(t, closeArg, {
+        $topic: 'close resource argument'
+      , type: 'Buffer'
+      , len: spok.gtz
+      , included: BUFFERLENGTH
+    })
+
+    spok(t, closeArg.val, {
+        $topic: 'close resource argument buffer val'
+      , utf8: src
+    })
 
     t.end()
   }
