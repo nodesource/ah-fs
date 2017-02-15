@@ -1,9 +1,8 @@
 const test = require('tape')
 const spok = require('spok')
 const FileSystemActivityCollector = require('../')
-const arrayElements = require('./util/array-elements')
 const tick = require('./util/tick')
-const { checkFunction } = require('./util/checks')
+const { checkFunction, checkFsReqWrap, checkReadStreamTick } = require('./util/checks')
 const ah = require('async_hooks')
 
 /* eslint-disable no-unused-vars */
@@ -16,70 +15,6 @@ function inspect(obj, depth) {
 
 const fs = require('fs')
 const BUFFERLENGTH = 18
-
-function checkRead(t, read, triggerId) {
-  spok(t, read,
-    { $topic       : 'read'
-    , id           : spok.number
-    , type         : 'FSREQWRAP'
-    , triggerId    : triggerId
-    , init         : arrayElements(1)
-    , initStack    : spok.array
-    , before       : arrayElements(1)
-    , beforeStacks : arrayElements(1)
-    , after        : arrayElements(1)
-    , afterStacks  : arrayElements(1)
-    , destroy      : arrayElements(1)
-    , destroyStack : spok.array }
-  )
-}
-
-function checkStreamTick(t, streamTick, triggerId, fd) {
-  spok(t, streamTick,
-    { $topic       : 'stream tick'
-    , id           : spok.number
-    , type         : 'TickObject'
-    , triggerId    : triggerId
-    , init         : arrayElements(1)
-    , before       : arrayElements(1)
-    , after        : arrayElements(1)
-    , destroy      : arrayElements(1) }
-  )
-  const readStream = streamTick.resource.args[0]
-
-  spok(t, readStream,
-      { $topic: 'readStream'
-      , readable: true
-      , _eventsCount: spok.number
-      , fd: fd
-      , mode: 438
-      , _asyncId: -1
-      , proto: 'ReadStream' }
-  )
-
-  spok(t, readStream._readableState,
-      { $topic: 'readStream._readableState'
-      , type: 'object'
-      , proto: 'ReadableState'
-      , val: '<deleted>' }
-  )
-
-  spok(t, readStream.path,
-    { $topic: 'readStream.path'
-    , type: 'string'
-    , len: spok.gtz
-    , included: spok.gtz
-    , val: spok.test(/readstream-one-file.js/) }
-  )
-
-  spok(t, readStream.flags,
-    { $topic: 'readStream.flags'
-    , type: 'string'
-    , len: 1
-    , included: 1
-    , val: 'r' }
-  )
-}
 
 test('\ncreateWriteStream one file', function(t) {
   const ROOTID = ah.currentId
@@ -135,6 +70,26 @@ test('\ncreateWriteStream one file', function(t) {
   */
   function runTest(activities, ROOTID) {
     const xs = activities.values()
+
+    t.ok(activities.size >= 9, 'at least 9 fs activities')
+
+    const openWrite = xs.next().value
+    const openRead = xs.next().value
+    const streamTick1 = xs.next().value
+    const read1 = xs.next().value
+    const write = xs.next().value
+    const read2 = xs.next().value
+    const streamTick2 = xs.next().value
+    const closeRead = xs.next().value
+
+    checkFsReqWrap(t, openWrite, 'open write', ROOTID)
+    checkFsReqWrap(t, openRead, 'open read', ROOTID)
+    checkReadStreamTick(t, streamTick1, ROOTID, __filename, null)
+    checkFsReqWrap(t, read1, 'read 1', openRead.id)
+    checkFsReqWrap(t, write, 'write', read1.id)
+    checkFsReqWrap(t, read2, 'read 2', read1.id)
+    checkReadStreamTick(t, streamTick2, read1.id, __filename, spok.gtz)
+    checkFsReqWrap(t, closeRead, 'close read', read2.id)
 
     t.end()
   }

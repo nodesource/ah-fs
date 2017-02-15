@@ -26,3 +26,66 @@ exports.checkFunction = function checkFunction(t, functions, { path, key, level,
   spok(t, fn.info, { $topic: $topic + '.info', file, line, column, inferredName, name })
 }
 
+exports.checkFsReqWrap = function checkFsReqWrap(t, resource, type, triggerId) {
+  spok(t, resource,
+    { $topic       : type
+    , id           : spok.number
+    , type         : 'FSREQWRAP'
+    , triggerId    : triggerId
+    , init         : spok.arrayElements(1)
+    , initStack    : spok.array
+    , before       : spok.arrayElements(1)
+    , beforeStacks : spok.arrayElements(1)
+    , after        : spok.arrayElements(1)
+    , afterStacks  : spok.arrayElements(1)
+    , destroy      : spok.arrayElements(1)
+    , destroyStack : spok.array }
+  )
+}
+
+exports.checkReadStreamTick = function checkReadStreamTick(t, streamTick, triggerId, filename, fd) {
+  spok(t, streamTick,
+    { $topic       : 'stream tick'
+    , id           : spok.number
+    , type         : 'TickObject'
+    , triggerId    : triggerId
+    , init         : spok.arrayElements(1)
+    , before       : spok.arrayElements(1)
+    , after        : spok.arrayElements(1)
+    , destroy      : spok.arrayElements(1) }
+  )
+  const readStream = streamTick.resource.args[0]
+
+  spok(t, readStream,
+      { $topic: 'readStream'
+      , readable: true
+      , _eventsCount: spok.number
+      , fd: fd
+      , mode: 438
+      , _asyncId: -1
+      , proto: 'ReadStream' }
+  )
+
+  spok(t, readStream._readableState,
+      { $topic: 'readStream._readableState'
+      , type: 'object'
+      , proto: 'ReadableState'
+      , val: '<deleted>' }
+  )
+
+  spok(t, readStream.path,
+    { $topic: 'readStream.path'
+    , type: 'string'
+    , len: spok.gtz
+    , included: spok.gtz
+    , val: filename }
+  )
+
+  spok(t, readStream.flags,
+    { $topic: 'readStream.flags'
+    , type: 'string'
+    , len: 1
+    , included: 1
+    , val: 'r' }
+  )
+}
