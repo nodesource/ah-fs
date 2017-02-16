@@ -39,8 +39,8 @@ test('\ncreateWriteStream one file', function(t) {
         .stringifyBuffers()
         .disable()
 
-      save('write-stream-fs-only', Array.from(collector.fileSystemActivities))
-      save('write-stream-all', Array.from(collector.activities))
+      // save('write-stream-fs-only', Array.from(collector.fileSystemActivities))
+      // save('write-stream-all', Array.from(collector.activities))
       runTest(collector.fileSystemActivities, ROOTID)
     })
   }
