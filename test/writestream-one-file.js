@@ -3,6 +3,7 @@ const spok = require('spok')
 const FileSystemActivityCollector = require('../')
 const tick = require('./util/tick')
 const { checkFunction, checkFsReqWrap, checkReadStreamTick } = require('./util/checks')
+const nonCoreFunctions = require('./util/non-core-functions')
 const ah = require('async_hooks')
 
 /* eslint-disable no-unused-vars */
@@ -90,6 +91,53 @@ test('\ncreateWriteStream one file', function(t) {
     checkFsReqWrap(t, read2, 'read 2', read1.id)
     checkReadStreamTick(t, streamTick2, read1.id, __filename, spok.gtz)
     checkFsReqWrap(t, closeRead, 'close read', read2.id)
+
+    // the functions on both stream ticks are very similar
+    // most are core functions that we aren't interested in, but we
+    // find our `onfinish` callback on both ticks in two places
+    // - args[0]_readableState.pipes._events.finish[1]
+    // - args[1].pipes._events.finish[1]
+    // it appears there exist two references to the same pipes objects
+
+    const tick1Fns = nonCoreFunctions(streamTick1.resource.functions)
+    t.equal(tick1Fns.length, 2, 'finds our non core function 2 times on first tick')
+
+    const fn1 = tick1Fns[0]
+    const fn2 = tick1Fns[1]
+    t.equal(fn1.info.file, fn2.info.file, 'same file')
+    t.equal(fn1.info.name, fn2.info.name, 'same name')
+
+    checkFunction(t, tick1Fns,
+       { path: [ 'args', '0', '_readableState', 'pipes', '_events', 'finish', '1' ]
+       , key: '1'
+       , level: 6
+       , info: {
+            file: spok.endsWith('writestream-one-file.js')
+          , line: spok.gt(90)
+          , column: spok.gtz
+          , inferredName: ''
+         , name: 'onfinish' }
+       , id: streamTick1.id
+       , arguments: null }
+    )
+
+    // proving that stream tick 2 has that function as well
+    const tick2Fns = nonCoreFunctions(streamTick2.resource.functions)
+    t.equal(tick2Fns.length, 2, 'finds our non core function 2 times on second tick')
+
+    checkFunction(t, tick2Fns,
+       { path: [ 'args', '0', '_readableState', 'pipes', '_events', 'finish', '1' ]
+       , key: '1'
+       , level: 6
+       , info: {
+            file: spok.endsWith('writestream-one-file.js')
+          , line: spok.gt(90)
+          , column: spok.gtz
+          , inferredName: ''
+         , name: 'onfinish' }
+       , id: streamTick1.id
+       , arguments: null }
+    )
 
     t.end()
   }

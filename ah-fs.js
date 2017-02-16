@@ -171,13 +171,15 @@ class FileSystemActivityCollector extends ActivityCollector {
     )
   }
 
-  _scoutFunctions(ctx, name) {
+  _scoutFunctions(ctx, uid, name) {
     const capture = this._captureArguments || this._captureSource
     const { functions }  = functionScout(ctx, { referenceFunction: capture })
 
     function adjustInfo(info) {
       // Point out to the user that these were attached to a specific property
+      // of an activity with a specific id
       info.path.unshift(name)
+      info.id = uid
 
       if (!capture) return
 
@@ -205,7 +207,7 @@ class FileSystemActivityCollector extends ActivityCollector {
     return functions
   }
 
-  _processArgs(args, { collectFunctionInfo }) {
+  _processArgs(uid, args, { collectFunctionInfo }) {
     const copy = new Array(args.length)
     for (let i = 0; i < args.length; i++) {
       // capturing all strings so we get file paths and flags if found
@@ -216,16 +218,16 @@ class FileSystemActivityCollector extends ActivityCollector {
 
     if (!collectFunctionInfo) return { args: copy }
 
-    const functions = this._scoutFunctions(args, 'args')
+    const functions = this._scoutFunctions(args, uid, 'args')
     return { args: copy, functions }
   }
 
-  _processResource(resource, { collectFunctionInfo }) {
+  _processResource(uid, resource, { collectFunctionInfo }) {
     if (resource == null) return null
 
     // TickObjects have no context, but they have an args array
     if (resource.context == null && resource.args != null) {
-      const { args, functions } = this._processArgs(resource.args, { collectFunctionInfo })
+      const { args, functions } = this._processArgs(uid, resource.args, { collectFunctionInfo })
       return collectFunctionInfo ? { args, functions } : { args }
     }
     // no context or args
@@ -236,7 +238,7 @@ class FileSystemActivityCollector extends ActivityCollector {
     // Only for args of a stream did we see crashes when getting the function origin
     // of contained functions.
     const ctx = this._clone(resource.context)
-    const functions = this._scoutFunctions(resource.context, 'context')
+    const functions = this._scoutFunctions(resource.context, uid, 'context')
     return { context: ctx, functions }
   }
 
@@ -244,7 +246,7 @@ class FileSystemActivityCollector extends ActivityCollector {
     if (h == null) return
     if (this._processed.has(uid)) return
     const activity = this.activities.get(uid)
-    const processed = this._processResource(activity.resource, { collectFunctionInfo })
+    const processed = this._processResource(uid, activity.resource, { collectFunctionInfo })
     activity.resource = processed
     this._processed.add(uid)
   }
