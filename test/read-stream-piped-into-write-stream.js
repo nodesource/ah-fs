@@ -39,7 +39,7 @@ test('\ncreateWriteStream one file', function(t) {
         .stringifyBuffers()
         .disable()
 
-      // save('write-stream-fs-only', Array.from(collector.fileSystemActivities))
+      // save('read-stream-piped-into-write-stream-fs-only', Array.from(collector.fileSystemActivities))
       // save('write-stream-all', Array.from(collector.activities))
       runTest(collector.fileSystemActivities, ROOTID)
     })
@@ -63,8 +63,8 @@ test('\ncreateWriteStream one file', function(t) {
    *
    *  - on the read stream ticks  we can collect all readable stream related functions
    *  - they are all inside core, mostly created due to piping into write stream
-   *  - however for whatever reason it also has our `onfinish` which we actually
-   *    assigned to the write stream, it's one of the pipe events
+   *  - it also has our `onfinish` which we assigned to the write stream and since
+   *    it's one of the pipes of the read stream it shows up here
    *
    *  Note: that the missing async_resource with id: 17 is an Immediate that contains
    *        no useful information
@@ -82,6 +82,7 @@ test('\ncreateWriteStream one file', function(t) {
     const read2 = xs.next().value
     const streamTick2 = xs.next().value
     const closeRead = xs.next().value
+    const closeWrite = xs.next().value
 
     checkFsReqWrap(t, openWrite, 'open write', ROOTID)
     checkFsReqWrap(t, openRead, 'open read', ROOTID)
@@ -91,6 +92,7 @@ test('\ncreateWriteStream one file', function(t) {
     checkFsReqWrap(t, read2, 'read 2', read1.id)
     checkReadStreamTick(t, streamTick2, read1.id, __filename, spok.gtz)
     checkFsReqWrap(t, closeRead, 'close read', read2.id)
+    checkFsReqWrap(t, closeWrite, 'close write', read2.id)
 
     // the functions on both stream ticks are very similar
     // most are core functions that we aren't interested in, but we
@@ -138,6 +140,42 @@ test('\ncreateWriteStream one file', function(t) {
        , id: streamTick1.id
        , arguments: null }
     )
+
+    // Both stream ticks should have the WriteStream as the last argument.
+    // Note that the second one captured the file descriptor (fd).
+    // It wasn't set when the first one initialized.
+    const ws1 = streamTick1.resource.args.pop()
+    const ws2 = streamTick2.resource.args.pop()
+    spok(t, ws1,
+       { $topic: 'WriteStream, last arg of streamTick1.resource'
+       , _writableState: { type: 'object', proto: 'WritableState', val: '<deleted>' }
+       , writable: true
+       , domain: null
+       , _events: { type: 'object', proto: null, val: '<deleted>' }
+       , _eventsCount: spok.gtz
+       , path: { type: 'string', len: 9, included: 9, val: '/dev/null' }
+       , fd: null
+       , flags: { type: 'string', len: 1, included: 1, val: 'w' }
+       , mode: 438
+       , autoClose: true
+       , bytesWritten: spok.number
+       , proto: 'WriteStream'
+    })
+    spok(t, ws2,
+       { $topic: 'WriteStream, last arg of streamTick2.resource'
+       , _writableState: { type: 'object', proto: 'WritableState', val: '<deleted>' }
+       , writable: true
+       , domain: null
+       , _events: { type: 'object', proto: null, val: '<deleted>' }
+       , _eventsCount: spok.gtz
+       , path: { type: 'string', len: 9, included: 9, val: '/dev/null' }
+       , fd: spok.gtz
+       , flags: { type: 'string', len: 1, included: 1, val: 'w' }
+       , mode: 438
+       , autoClose: true
+       , bytesWritten: spok.number
+       , proto: 'WriteStream'
+    })
 
     t.end()
   }

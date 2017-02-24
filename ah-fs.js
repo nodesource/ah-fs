@@ -22,6 +22,24 @@ function isreadStreamTickObject(type, activity) {
   return args[0].readable
 }
 
+/**
+ * The WriteStream is attached to the pipes of a ReadableState
+ * of the ReadStream that is piped into it.
+ *
+ * If one is found, it is returned so it can be added to the copied args.
+ *
+ * @name findWriteStream
+ * @function
+ * @private
+ * @param {Object} arg the original arg found on the resource
+ * @param {Object} copy the clone of the arg
+ */
+function findWriteStream(arg, copy) {
+  if (copy.proto !== 'ReadableState') return null
+  if (copy.pipes != null && copy.pipes.proto !== 'WriteStream') return null
+  return arg.pipes
+}
+
 const defaultStackCapturer = new StackCapturer({
   shouldCapture(event, type, activity) {
     // could include stream tick objects here, but those stacks
@@ -208,12 +226,19 @@ class FileSystemActivityCollector extends ActivityCollector {
   }
 
   _processArgs(uid, args, { collectFunctionInfo }) {
+    const cloneOpts = { stringLength: Infinity }
     const copy = new Array(args.length)
     for (let i = 0; i < args.length; i++) {
       // capturing all strings so we get file paths and flags if found
-      copy[i] = facileClone(
-          args[i]
-        , { stringLength: Infinity })
+      copy[i] = facileClone(args[i], cloneOpts)
+    }
+    // Look for writeStreams which are attached to the pipes of
+    // readStream pipes and add them to the end of the copy array
+    for (let i = 0; i < copy.length; i++) {
+      const writeStream = findWriteStream(args[i], copy[i])
+      if (writeStream != null) {
+        copy.push(facileClone(writeStream, cloneOpts))
+      }
     }
 
     if (!collectFunctionInfo) return { args: copy }
