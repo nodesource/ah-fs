@@ -6,7 +6,7 @@ const StackCapturer = require('ah-stack-capturer')
 const functionScout = require('function-scout')
 /* eslint-disable no-unused-vars */
 const util = require('util')
-const print = obj => process._rawDebug(util.inspect(obj, true, 15, true))
+const print = obj => process._rawDebug(util.inspect(obj, true, 100, true))
 
 const types = new Set([ 'FSREQWRAP', 'FSREQUESTWRAP' ])
 
@@ -284,6 +284,7 @@ class FileSystemActivityCollector extends ActivityCollector {
     // We could capture here, but then we'd miss a bunch of information
     // especially callback arguments
 
+    // print({ uid, type, resource })
     activity.resource = resource
     return activity
   }
@@ -304,3 +305,41 @@ class FileSystemActivityCollector extends ActivityCollector {
 }
 
 module.exports = FileSystemActivityCollector
+
+// Test
+if (!module.parent && typeof window === 'undefined') {
+const save = require('./test/util/save')
+const path = require('path')
+const fs = require('fs')
+const tick = require('./test/util/tick')
+const BUFFERLENGTH = 18
+
+const collector = new FileSystemActivityCollector({
+    start            : process.hrtime()
+  , captureArguments : true
+  , captureSource    : false
+  , bufferLength     : BUFFERLENGTH
+}).enable()
+
+fs.writeFile(
+    path.join(__dirname, 'test', 'tmp', 'write-one-file.tmp')
+  , fs.readFileSync(__filename)
+  , onwritten)
+
+// eslint-disable-next-line no-inner-declarations
+function onwritten(err) {
+  if (err) return console.error(err)
+
+  collector.cleanAllResources().disable()
+
+  // allow `close` 'after' and `destroy` to fire
+  tick(2, () => {
+    collector
+      .processStacks()
+      .stringifyBuffers()
+
+    // save('write-fs-only', Array.from(collector.fileSystemActivities))
+    // save('write-fs-all', Array.from(collector.activities))
+  })
+}
+}
