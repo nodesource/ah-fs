@@ -37,6 +37,6 @@
     "url": "https://github.com/nodesource/ah-fs/blob/master/LICENSE"
   },
   "engine": {
-    "node": ">=0.10"
+    "node": ">=8"
   }
 }
