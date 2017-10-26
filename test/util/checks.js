@@ -62,7 +62,6 @@ exports.checkReadStreamTick = function checkReadStreamTick(t, streamTick, trigge
       , _eventsCount: spok.number
       , fd: fd
       , mode: 438
-      , _asyncId: -1
       , proto: 'ReadStream' }
   )
 
