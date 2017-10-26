@@ -1,6 +1,6 @@
 {
   "name": "ah-fs",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Tracks async hook events related to file system operations.",
   "main": "ah-fs.js",
   "scripts": {
