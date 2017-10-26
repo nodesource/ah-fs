@@ -1,4 +1,4 @@
-# ah-fs
+# ah-fs [![build status](https://secure.travis-ci.org/nodesource/ah-fs.svg?branch=master)](http://travis-ci.org/nodesource/ah-fs)
 
 Tracks async hook events related to file system operations.
 
